@@ -3,5 +3,11 @@
         <file>res/exit_fullscreen.png</file>
         <file>res/fullscreen_small.png</file>
         <file>res/videocount.png</file>
+        <file>res/left.png</file>
+        <file>res/right.png</file>
+        <file>res/close.png</file>
+        <file>res/max.png</file>
+        <file>res/min.png</file>
+        <file>res/restore.png</file>
     </qresource>
 </RCC>

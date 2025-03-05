@@ -50,6 +50,7 @@ void CustomHeaderView::paintSection(QPainter *painter, const QRect &rect, int lo
        painter->save();
        QFont font;
        font.setPixelSize(18);
+       font.setBold(true);
        painter->setFont(font);
        QRect txtRec(rect.left(), rect.top(), rect.width(), rect.height());
        painter->drawText(txtRec, Qt::AlignCenter, strText);

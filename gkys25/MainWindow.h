@@ -1,4 +1,4 @@
-#ifndef MAINWINDOW_H
+﻿#ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
 #include <QMainWindow>
@@ -29,21 +29,31 @@ signals:
 
 public slots:
     void onAccessTokenOK();
-    void onFullScreenClick();
     void onItemDbClick(int index);
+
+    void onCloseClick();
+    void onMinClick();
+    void onMaxClick();
+
+
+protected:
+    void closeEvent(QCloseEvent *event) override;
 
 
 private:
     Ui::MainWindow *ui;
     QVBoxLayout m_vboxMain;
     QTableView m_tableView;
-    QHBoxLayout m_hboxMenu;
+    QHBoxLayout m_hboxTitle;
 
-    QPushButton m_btnFullscreen;
+    QPushButton m_btnClose;
+    QPushButton m_btnMaxWinddow;
+    QPushButton m_btnMinWindow;
     DeviceTableModel* m_tableModel;
 
     QJsonArray m_devList;
     QString m_sessionId;
+    bool m_isMaxWnd;
 
     void initControls();
     void initTableView();

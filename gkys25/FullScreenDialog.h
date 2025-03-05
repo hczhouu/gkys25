@@ -1,4 +1,4 @@
-#ifndef FULLSCREENDIALOG_H
+﻿#ifndef FULLSCREENDIALOG_H
 #define FULLSCREENDIALOG_H
 
 #include <QDialog>
@@ -8,8 +8,10 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QFrame>
+#include <QLabel>
 #include <QPushButton>
 #include <QGridLayout>
+#include "VideoFrame.h"
 
 namespace Ui {
 class FullScreenDialog;
@@ -25,6 +27,7 @@ public:
 
     void setDevList(int index, const QString& sessionId, QJsonArray* devArray);
     void createVideos(int videoCount);
+    void createVideoByIndex(int index);
 
 public slots:
     void onExitFullScreen();
@@ -35,6 +38,9 @@ public slots:
     void onActionNineVideo();
     void onActionSixteenVideo();
 
+    void onPreviousClick();
+    void onNextClick();
+
 private:
     Ui::FullScreenDialog *ui;
     int m_currIndex;
@@ -44,9 +50,15 @@ private:
     QVBoxLayout m_vboxMain;
     QHBoxLayout m_hboxMenu;
     QGridLayout m_gridLayout;
+    QPushButton m_btnPrevious;
+    QPushButton m_btnNext;
+    QLabel m_textPageNum;
     QPushButton m_btnExitFull;
     QPushButton m_btnVideoCount;
     QFrame* m_frameVideos;
+    QVector<VideoFrame*> m_vecFrames;
+    int m_currVideoCount;
+    int m_currVideoIndex;
 
     void initControls();
     void clearGridLayout();
