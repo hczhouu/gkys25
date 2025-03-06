@@ -177,6 +177,7 @@ void FullScreenDialog::onPreviousClick()
             pFrame->stopPlay();
             QJsonObject item = m_devArray->at(0).toObject();
             QString serialNum = item.value("deviceSerial").toString();
+            qDebug() << "serialNum : " << serialNum;
             int channelNo = item.value("cameraNo").toInt();
             pFrame->startPlay(serialNum, channelNo);
         }
@@ -211,6 +212,7 @@ void FullScreenDialog::onPreviousClick()
         m_currVideoIndex++;
         QJsonObject item = m_devArray->at(i).toObject();
         QString serialNum = item.value("deviceSerial").toString();
+        qDebug() << "serialNum >>>>>>>>>>>>>>>>>>>>>>>>>>> : " << serialNum;
         int channelNo = item.value("cameraNo").toInt();
         m_vecFrames.at(0)->startPlay(serialNum, channelNo);
     }
@@ -345,6 +347,7 @@ void FullScreenDialog::createVideoByIndex(int index)
     playFrameWnd->setSize(iPlayWndWidth, iPlayWndHeight);
     QJsonObject item = m_devArray->at(index).toObject();
     QString serialNum = item.value("deviceSerial").toString();
+    qDebug() << "serialNum>>>>>>>>>>>>>>>>>> : " << serialNum;
     int channelNo = item.value("cameraNo").toInt();
     playFrameWnd->startPlay(serialNum, channelNo);
     m_gridLayout.addWidget(playFrameWnd, iPlayWndHeight,

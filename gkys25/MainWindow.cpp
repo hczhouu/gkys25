@@ -16,8 +16,6 @@
 #include "json/json.h"
 
 
-std::string accessToken = "";
-
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -31,7 +29,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_isMaxWnd = false;
     initControls();
     //setWindowFlags(Qt::FramelessWindowHint);
-    connect(this, &MainWindow::getAccessTokenOK, this, &MainWindow::onAccessTokenOK);
+    connect(this, &MainWindow::deviceListChange, this, &MainWindow::slotDeviceListChange, Qt::UniqueConnection);
     std::thread(&MainWindow::sendHttpRequest, this).detach();
 }
 
@@ -171,10 +169,9 @@ void CALLBACK MainWindow::messageHandler(const char* szSessionId, unsigned int i
 void MainWindow::sendHttpRequest()
 {
     curl_global_init(CURL_GLOBAL_ALL);
-    accessToken.clear();
+    std::string accessToken  = "";
     std::string url = "https://open.ys7.com/api/lapp/token/get";
-    //std::string postData = "appKey=1a2dff9fcc3d4111b1531e73bb9930e7&appSecret=3322f3b4eeb6d988f0a5a1c6a0afe2e3";
-    std::string postData = "appKey=9807fb236f86411b8ad35adb4a948417&appSecret=bba5f6d3df6377c82123e6ebe4d75c80";
+    std::string postData = "appKey=1a2dff9fcc3d4111b1531e73bb9930e7&appSecret=3322f3b4eeb6d988f0a5a1c6a0afe2e3";
     CURL* pCurl = curl_easy_init();
     curl_easy_setopt(pCurl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(pCurl, CURLOPT_SSL_VERIFYPEER, 0L);
@@ -203,7 +200,7 @@ void MainWindow::sendHttpRequest()
     QJsonObject objectData = object.value("data").toObject();
     accessToken = objectData.value("accessToken").toString().toStdString();
     qDebug() << accessToken.data();
-    emit getAccessTokenOK();
+    getDeviceList(accessToken);
 }
 
 
@@ -220,12 +217,12 @@ size_t MainWindow::writeDataCallback(char* buffer, size_t size,
 }
 
 
-void MainWindow::onAccessTokenOK()
+void MainWindow::getDeviceList(const std::string& accessToken)
 {
+    //获取设备列表
     std::string authAddr = "https://openauth.ys7.com";
     std::string platForm = "https://open.ys7.com";
-    //std::string appKey = "1a2dff9fcc3d4111b1531e73bb9930e7";
-    std::string appKey = "9807fb236f86411b8ad35adb4a948417";
+    std::string appKey = "1a2dff9fcc3d4111b1531e73bb9930e7";
     //初始化SDK
     if ( OpenSDK_InitLib(authAddr.data(), platForm.data(), appKey.data(), false) != OPEN_SDK_NOERROR)
     {
@@ -249,42 +246,39 @@ void MainWindow::onAccessTokenOK()
     //获取设备列表
     void* devList = NULL;
     int devListLen = 0;
-    if(OpenSDK_Data_GetDevListEx(0, 1, &devList, &devListLen) != OPEN_SDK_NOERROR)
+    std::string devSerial = "FU0782242";
+    if(OpenSDK_Data_GetDeviceInfo(accessToken.data(), devSerial.data(), &devList, &devListLen) != OPEN_SDK_NOERROR)
     {
         OpenSDK_FiniLib();
         return;
     }
 
-    QByteArray jsonData =  QByteArray(static_cast<char*>(devList), devListLen);
     QJsonParseError jsonError;
-    QJsonDocument doucment = QJsonDocument::fromJson(jsonData, &jsonError);  // 转化为 JSON 文档
-    if (doucment.isNull() || (jsonError.error != QJsonParseError::NoError))
+    QByteArray jsonData =  QByteArray(static_cast<char*>(devList), devListLen);
+    QJsonDocument docDataList = QJsonDocument::fromJson(jsonData, &jsonError);  // 转化为 JSON 文档
+    if (docDataList.isNull() || (jsonError.error != QJsonParseError::NoError))
     {
         OpenSDK_Data_Free(devList);
        return;
     }
 
-    QJsonObject object = doucment.object();
-    QJsonArray arrData = object.value("data").toArray();
-    if (arrData.empty())
+    QJsonObject objectDataList = docDataList.object();
+    QJsonObject devInfo = objectDataList.value("result").toObject();
+    m_devList = devInfo.value("data").toArray();
+    if (m_devList.empty())
     {
         OpenSDK_Data_Free(devList);
        return;
     }
 
-
-    QJsonArray arrItems;
-    foreach (auto item, arrData)
-    {
-        m_devList = item.toObject().value("cameraInfo").toArray();
-        foreach (auto itemInfo, m_devList)
-        {
-            arrItems.push_back(itemInfo);
-        }
-    }
-
-    m_tableModel->updateModelData(arrItems);
     OpenSDK_Data_Free(devList);
+    emit deviceListChange(m_devList);
+}
+
+void MainWindow::slotDeviceListChange(const QJsonArray& devList)
+{
+    m_devList = devList;
+    m_tableModel->updateModelData(devList);
 }
 
 

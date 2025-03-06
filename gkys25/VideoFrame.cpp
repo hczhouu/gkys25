@@ -32,6 +32,7 @@ VideoFrame::VideoFrame()
 VideoFrame::~VideoFrame()
 {
     exitFlags.store(true);
+    stopRealPlay(m_sessionId);
 }
 
 
@@ -123,6 +124,7 @@ void VideoFrame::realPlayVideo(const QString& devSerialNum, int channelNo, WId h
     }
 
     *sessionId = static_cast<char*>(sessionBuf);
+    qDebug() << sessionId->data() << channelNo << devSerialNum;
     if(OpenSDK_StartPlayWithStreamType(sessionId->toStdString().data(), (HWND)hwnd,
        devSerialNum.toStdString().data(), channelNo, NULL, 1) != OPEN_SDK_NOERROR)
     {
@@ -172,7 +174,7 @@ void VideoFrame::setPlayStatus(int type)
     case INS_PLAY_EXCEPTION:
     {
         m_textTips.setText(u8"播放异常,正在重试...");
-        OpenSDK_GetLastErrorCode();
+        qDebug() << "OpenSDK_GetLastErrorCode() : " << OpenSDK_GetLastErrorCode() << OpenSDK_GetLastErrorDesc();
     }
 
         break;
@@ -225,8 +227,6 @@ void VideoFrame::getAlarmInfo(const std::string& devSerialNum, const int channel
         }
 
         QByteArray jsonData =  QByteArray(static_cast<char*>(pBuf), length);
-        qDebug() << "alarm list >>>>>>>>>>>>>>>>> : " << jsonData.data();
-
         QJsonParseError jsonError;
         QJsonDocument doucment = QJsonDocument::fromJson(jsonData, &jsonError);  // 转化为 JSON 文档
         if (doucment.isNull() || (jsonError.error != QJsonParseError::NoError))

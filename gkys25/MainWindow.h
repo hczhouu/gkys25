@@ -25,15 +25,14 @@ public:
     ~MainWindow();
 
 signals:
-    void getAccessTokenOK();
+    void deviceListChange(const QJsonArray& devList);
 
 public slots:
-    void onAccessTokenOK();
     void onItemDbClick(int index);
-
     void onCloseClick();
     void onMinClick();
     void onMaxClick();
+    void slotDeviceListChange(const QJsonArray& devList);
 
 
 protected:
@@ -58,6 +57,7 @@ private:
     void initControls();
     void initTableView();
     void sendHttpRequest();
+    void getDeviceList(const std::string& accessToken);
     static size_t writeDataCallback(char* buffer, size_t size,
                              size_t nitems, void* outstream);
 
