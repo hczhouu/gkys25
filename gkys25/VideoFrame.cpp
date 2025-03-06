@@ -10,6 +10,7 @@
 #include <QJsonDocument>
 
 std::atomic<bool> exitFlags;
+std::atomic<int>  alarmCount;
 
 VideoFrame::VideoFrame()
 {
@@ -18,11 +19,13 @@ VideoFrame::VideoFrame()
     connect(this, &VideoFrame::playAlarmSound, this, &VideoFrame::slotPlayAlarmSound, Qt::UniqueConnection);
 
     exitFlags.store(false);
+    alarmCount.store(0);
     m_player = std::make_shared<QMediaPlayer>();
     m_playerList = std::make_shared<QMediaPlaylist>();
     m_player->setVolume(100);
     m_playerList->addMedia(QMediaContent(QUrl("qrc:/res/alarm.mp3")));
     m_player->setPlaylist(m_playerList.get());
+    connect(m_player.get(), &QMediaPlayer::stateChanged, this, &VideoFrame::stateChanged);
 }
 
 
@@ -199,21 +202,6 @@ void CALLBACK  VideoFrame::pushMessageHandler(const char* szDesc, const char* sz
 
 void VideoFrame::getAlarmList()
 {
-//    if (OpenSDK_Push_SetAlarmCallBack(pushMessageHandler, this) != OPEN_SDK_NOERROR)
-//    {
-//        qDebug() << "OpenSDK_Push_SetAlarmCallBack failed  " << OpenSDK_GetLastErrorDesc();
-//        return;
-//    }
-
-//    std::string strAccessToken = OpenSDK_GetLoginResponseParams(LOGIN_ACCESS_TOKEN);
-//    if (OpenSDK_Push_OpenRecv(strAccessToken.data()) != 0)
-//    {
-//        qDebug() << "OpenSDK_Push_OpenRecv failed  " << OpenSDK_GetLastErrorCode();
-//        return;
-//    }
-
-//    qDebug() << "OpenSDK_Push_OpenRecv OK";
-
     std::thread(&VideoFrame::getAlarmInfo, this,
                 m_devSerialNum.toStdString(), m_channelNo).detach();
 }
@@ -265,14 +253,14 @@ void VideoFrame::getAlarmInfo(const std::string& devSerialNum, const int channel
 
         foreach (const QJsonValue& item, arrData)
         {
+            QString alarmId = item.toObject().value("alarmId").toString();
+            OpenSDK_Data_SetAlarmRead(OpenSDK_GetLoginResponseParams(LOGIN_ACCESS_TOKEN),
+                                      alarmId.toStdString().data());
+
             if (item.toObject().value("alarmType").toInt() == FIELD_DETECTION_ALARM ||
                 item.toObject().value("alarmType").toInt() == MOTION_DETECT_ALARM )
             {
                 emit playAlarmSound();
-                QString alarmId = item.toObject().value("alarmId").toString();
-                OpenSDK_Data_SetAlarmRead(OpenSDK_GetLoginResponseParams(LOGIN_ACCESS_TOKEN),
-                                          alarmId.toStdString().data());
-                break;
             }
         }
 
@@ -284,5 +272,24 @@ void VideoFrame::getAlarmInfo(const std::string& devSerialNum, const int channel
 
 void VideoFrame::slotPlayAlarmSound()
 {
-    m_player->play();
+    if (m_player->state() != QMediaPlayer::PlayingState)
+    {
+        m_player->play();
+    }
+}
+
+
+void VideoFrame::stateChanged(QMediaPlayer::State newState)
+{
+    if (newState == QMediaPlayer::StoppedState)
+    {
+        if (alarmCount.load() > 2)
+        {
+            alarmCount.store(0);
+            return;
+        }
+
+        alarmCount.fetch_add(1);
+        m_player->play();
+    }
 }

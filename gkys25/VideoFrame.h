@@ -33,6 +33,7 @@ signals:
 public slots:
     void slotPlayException(VideoFrame* pFrame, int msgType);
     void slotPlayAlarmSound();
+    void stateChanged(QMediaPlayer::State newState);
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
