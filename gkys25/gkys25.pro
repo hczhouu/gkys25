@@ -1,4 +1,4 @@
-QT       += core gui widgets multimedia
+QT     += core gui widgets multimedia
 CONFIG += c++11
 
 SOURCES += \
