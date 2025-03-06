@@ -4,18 +4,31 @@
 #include <QDebug>
 #include <thread>
 #include <mutex>
+#include <QDate>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonDocument>
 
+std::atomic<bool> exitFlags;
 
 VideoFrame::VideoFrame()
 {
     setStyleSheet("QFrame{border:1px solid gray}");
     connect(this, &VideoFrame::playException, this, &VideoFrame::slotPlayException);
+    connect(this, &VideoFrame::playAlarmSound, this, &VideoFrame::slotPlayAlarmSound, Qt::UniqueConnection);
+
+    exitFlags.store(false);
+    m_player = std::make_shared<QMediaPlayer>();
+    m_playerList = std::make_shared<QMediaPlaylist>();
+    m_player->setVolume(100);
+    m_playerList->addMedia(QMediaContent(QUrl("qrc:/res/alarm.mp3")));
+    m_player->setPlaylist(m_playerList.get());
 }
 
 
 VideoFrame::~VideoFrame()
 {
-    qDebug() << "VideoFrame::~VideoFrame";
+    exitFlags.store(true);
 }
 
 
@@ -23,7 +36,7 @@ void VideoFrame::setSize(int iWidth, int iHeight)
 {
     setMinimumSize(iWidth, iHeight);
     m_videoFrame.setParent(this);
-    m_videoFrame.setMinimumSize(iWidth - 1*2, iHeight - 1*2);
+    m_videoFrame.setMinimumSize(iWidth - 1 * 2, iHeight - 1 * 2);
     m_videoFrame.move(1, 1);
 
     m_vboxTips.setMargin(0);
@@ -31,7 +44,7 @@ void VideoFrame::setSize(int iWidth, int iHeight)
     m_vboxTips.setAlignment(Qt::AlignHCenter);
 
     QFont font;
-    font.setPixelSize(15);
+    font.setPixelSize(20);
     font.setFamily(u8"微软雅黑");
     m_textTips.setFont(font);
     m_textTips.setAlignment(Qt::AlignCenter);
@@ -111,12 +124,27 @@ void VideoFrame::realPlayVideo(const QString& devSerialNum, int channelNo, WId h
        devSerialNum.toStdString().data(), channelNo, NULL, 1) != OPEN_SDK_NOERROR)
     {
         qDebug() << "OpenSDK_StartPlayWithStreamType failed";
+        return;
+    }
+
+    getAlarmList();
+
+    if (OpenSDK_OpenSound(sessionBuf) != OPEN_SDK_NOERROR)
+    {
+        qDebug() << "OpenSDK_OpenSound failed";
+        return;
     }
 }
 
 
 void VideoFrame::stopRealPlay(const QString& sessionId)
 {
+    if (OpenSDK_CloseSound(sessionId.toStdString().data()) != OPEN_SDK_NOERROR)
+    {
+        qDebug() << "OpenSDK_CloseSound failed";
+    }
+
+
     if(OpenSDK_StopRealPlayEx(sessionId.toStdString().data()) != OPEN_SDK_NOERROR)
     {
         qDebug() << "OpenSDK_StopRealPlayEx failed";
@@ -142,7 +170,6 @@ void VideoFrame::setPlayStatus(int type)
     {
         m_textTips.setText(u8"播放异常,正在重试...");
         OpenSDK_GetLastErrorCode();
-        qDebug() << "OpenSDK_GetLastErrorDesc >>>>> : " << OpenSDK_GetLastErrorDesc();
     }
 
         break;
@@ -161,4 +188,101 @@ void VideoFrame::setPlayStatus(int type)
     default:
         break;
     }
+}
+
+
+void CALLBACK  VideoFrame::pushMessageHandler(const char* szDesc, const char* szContent,  const char* szDetail, void* pUser)
+{
+    qDebug() << szDesc << szContent << szDetail << pUser;
+}
+
+
+void VideoFrame::getAlarmList()
+{
+//    if (OpenSDK_Push_SetAlarmCallBack(pushMessageHandler, this) != OPEN_SDK_NOERROR)
+//    {
+//        qDebug() << "OpenSDK_Push_SetAlarmCallBack failed  " << OpenSDK_GetLastErrorDesc();
+//        return;
+//    }
+
+//    std::string strAccessToken = OpenSDK_GetLoginResponseParams(LOGIN_ACCESS_TOKEN);
+//    if (OpenSDK_Push_OpenRecv(strAccessToken.data()) != 0)
+//    {
+//        qDebug() << "OpenSDK_Push_OpenRecv failed  " << OpenSDK_GetLastErrorCode();
+//        return;
+//    }
+
+//    qDebug() << "OpenSDK_Push_OpenRecv OK";
+
+    std::thread(&VideoFrame::getAlarmInfo, this,
+                m_devSerialNum.toStdString(), m_channelNo).detach();
+}
+
+
+
+void VideoFrame::getAlarmInfo(const std::string& devSerialNum, const int channelNo)
+{
+    while (!exitFlags.load())
+    {
+        void* pBuf = NULL;
+        int length = 0;
+        QDate currDate = QDate::currentDate();
+        QString startTime = currDate.toString("yyyy-MM-dd 00:00:00");
+        QString stopTime  = currDate.toString("yyyy-MM-dd 23:59:59");
+        if (OpenSDK_Data_GetAlarmListEx(devSerialNum.data(), channelNo,
+                                        startTime.toStdString().data(), stopTime.toStdString().data(),
+                                        ALARM_TYPE_ALL, 0,  0, 100, &pBuf, &length) != OPEN_SDK_NOERROR)
+        {
+            continue;
+        }
+
+        QByteArray jsonData =  QByteArray(static_cast<char*>(pBuf), length);
+        qDebug() << "alarm list >>>>>>>>>>>>>>>>> : " << jsonData.data();
+
+        QJsonParseError jsonError;
+        QJsonDocument doucment = QJsonDocument::fromJson(jsonData, &jsonError);  // 转化为 JSON 文档
+        if (doucment.isNull() || (jsonError.error != QJsonParseError::NoError))
+        {
+            OpenSDK_Data_Free(pBuf);
+            continue;
+        }
+
+        QJsonObject object = doucment.object();
+        QJsonObject jsonResult = object.value("result").toObject();
+        QJsonArray arrData =  jsonResult.value("data").toArray();
+        if (arrData.empty())
+        {
+            OpenSDK_Data_Free(pBuf);
+            continue;
+        }
+
+        if (arrData.empty())
+        {
+            OpenSDK_Data_Free(pBuf);
+            std::this_thread::sleep_for(std::chrono::seconds(5));
+            continue;
+        }
+
+        foreach (const QJsonValue& item, arrData)
+        {
+            if (item.toObject().value("alarmType").toInt() == FIELD_DETECTION_ALARM ||
+                item.toObject().value("alarmType").toInt() == MOTION_DETECT_ALARM )
+            {
+                emit playAlarmSound();
+                QString alarmId = item.toObject().value("alarmId").toString();
+                OpenSDK_Data_SetAlarmRead(OpenSDK_GetLoginResponseParams(LOGIN_ACCESS_TOKEN),
+                                          alarmId.toStdString().data());
+                break;
+            }
+        }
+
+        OpenSDK_Data_Free(pBuf);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+}
+
+
+void VideoFrame::slotPlayAlarmSound()
+{
+    m_player->play();
 }

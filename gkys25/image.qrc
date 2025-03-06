@@ -9,5 +9,6 @@
         <file>res/max.png</file>
         <file>res/min.png</file>
         <file>res/restore.png</file>
+        <file>res/alarm.mp3</file>
     </qresource>
 </RCC>

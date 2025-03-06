@@ -86,10 +86,10 @@ void FullScreenDialog::initControls()
     m_btnExitFull.setIconSize(QSize(20, 20));
     connect(&m_btnExitFull, &QPushButton::clicked, this, &FullScreenDialog::onExitFullScreen);
 
-    m_hboxMenu.addWidget(&m_btnPrevious);
-    m_hboxMenu.addWidget(&m_textPageNum);
-    m_hboxMenu.addWidget(&m_btnNext);
-    m_hboxMenu.addWidget(&m_btnVideoCount);
+    //m_hboxMenu.addWidget(&m_btnPrevious);
+    //m_hboxMenu.addWidget(&m_textPageNum);
+    //m_hboxMenu.addWidget(&m_btnNext);
+    //m_hboxMenu.addWidget(&m_btnVideoCount);
     m_hboxMenu.addWidget(&m_btnExitFull);
 
     m_frameVideos = new QFrame(this);
@@ -383,3 +383,4 @@ void FullScreenDialog::clearGridLayout()
         delete child;
     }
 }
+

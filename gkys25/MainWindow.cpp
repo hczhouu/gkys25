@@ -173,7 +173,8 @@ void MainWindow::sendHttpRequest()
     curl_global_init(CURL_GLOBAL_ALL);
     accessToken.clear();
     std::string url = "https://open.ys7.com/api/lapp/token/get";
-    std::string postData = "appKey=1a2dff9fcc3d4111b1531e73bb9930e7&appSecret=3322f3b4eeb6d988f0a5a1c6a0afe2e3";
+    //std::string postData = "appKey=1a2dff9fcc3d4111b1531e73bb9930e7&appSecret=3322f3b4eeb6d988f0a5a1c6a0afe2e3";
+    std::string postData = "appKey=9807fb236f86411b8ad35adb4a948417&appSecret=bba5f6d3df6377c82123e6ebe4d75c80";
     CURL* pCurl = curl_easy_init();
     curl_easy_setopt(pCurl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(pCurl, CURLOPT_SSL_VERIFYPEER, 0L);
@@ -223,7 +224,8 @@ void MainWindow::onAccessTokenOK()
 {
     std::string authAddr = "https://openauth.ys7.com";
     std::string platForm = "https://open.ys7.com";
-    std::string appKey = "1a2dff9fcc3d4111b1531e73bb9930e7";
+    //std::string appKey = "1a2dff9fcc3d4111b1531e73bb9930e7";
+    std::string appKey = "9807fb236f86411b8ad35adb4a948417";
     //初始化SDK
     if ( OpenSDK_InitLib(authAddr.data(), platForm.data(), appKey.data(), false) != OPEN_SDK_NOERROR)
     {

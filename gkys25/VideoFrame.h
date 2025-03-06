@@ -5,6 +5,10 @@
 #include <QFrame>
 #include <QVBoxLayout>
 #include <QLabel>
+#include <QString>
+#include <atomic>
+#include <QMediaPlayer>
+#include <QMediaPlaylist>
 #include "OpenNetStreamDefine.h"
 #include "OpenNetStreamError.h"
 #include "OpenNetStreamInterFace.h"
@@ -24,9 +28,11 @@ public:
 signals:
     void frameDbClick(int itemIndex, int channelIndex);
     void playException(VideoFrame* pFrame, int msgType);
+    void playAlarmSound();
 
 public slots:
     void slotPlayException(VideoFrame* pFrame, int msgType);
+    void slotPlayAlarmSound();
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
@@ -41,12 +47,16 @@ private:
 
     QHBoxLayout m_vboxTips;
     QLabel m_textTips;
+    std::shared_ptr<QMediaPlayer> m_player;
+    std::shared_ptr<QMediaPlaylist> m_playerList;
 
-
+    void getAlarmList();
+    void getAlarmInfo(const std::string& devSerialNum, const int channelNo);
     void realPlayVideo(const QString& devSerialNum, int channelNo, WId hwnd, QString* sessionId);
     void stopRealPlay(const QString& sessionId);
     static void CALLBACK messageHandler(const char* szSessionId, unsigned int iMsgType,
                                              unsigned int iErrorCode,const char *pMessageInfo, void *pUser);
+    static void CALLBACK  pushMessageHandler(const char* szDesc, const char* szContent,  const char* szDetail, void* pUser);
 
 };
 
