@@ -9,6 +9,8 @@
 #include <iostream>
 #include <QTextCodec>
 #include <QFile>
+#include <QDir>
+#include <QSettings>
 #include <QTextStream>
 #include "CustomHeaderView.h"
 #include "TextItemDelegate.h"
@@ -168,10 +170,20 @@ void CALLBACK MainWindow::messageHandler(const char* szSessionId, unsigned int i
 
 void MainWindow::sendHttpRequest()
 {
+    QString currPath = QDir::currentPath();
+    QSettings settings(currPath + "/Config.ini", QSettings::IniFormat);
+    //获取设备列表
+    QString appKey = settings.value("main/appKey").toString();
+    QString appSecret = settings.value("main/appSecret").toString();
+
     curl_global_init(CURL_GLOBAL_ALL);
     std::string accessToken  = "";
     std::string url = "https://open.ys7.com/api/lapp/token/get";
-    std::string postData = "appKey=1a2dff9fcc3d4111b1531e73bb9930e7&appSecret=3322f3b4eeb6d988f0a5a1c6a0afe2e3";
+    std::string postData;
+    postData.append("appKey=");
+    postData.append(appKey.toStdString());
+    postData.append("&appSecret=");
+    postData.append(appSecret.toStdString());
     CURL* pCurl = curl_easy_init();
     curl_easy_setopt(pCurl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(pCurl, CURLOPT_SSL_VERIFYPEER, 0L);
@@ -219,12 +231,16 @@ size_t MainWindow::writeDataCallback(char* buffer, size_t size,
 
 void MainWindow::getDeviceList(const std::string& accessToken)
 {
+    QString currPath = QDir::currentPath();
+    QSettings settings(currPath + "/Config.ini", QSettings::IniFormat);
     //获取设备列表
-    std::string authAddr = "https://openauth.ys7.com";
-    std::string platForm = "https://open.ys7.com";
-    std::string appKey = "1a2dff9fcc3d4111b1531e73bb9930e7";
+    QString authAddr = settings.value("main/authAddr").toString();
+    QString platForm = settings.value("main/platForm").toString();
+    QString appKey = settings.value("main/appKey").toString();
     //初始化SDK
-    if ( OpenSDK_InitLib(authAddr.data(), platForm.data(), appKey.data(), false) != OPEN_SDK_NOERROR)
+    if ( OpenSDK_InitLib(authAddr.toLocal8Bit().data(),
+                         platForm.toLocal8Bit().data(),
+                         appKey.toLocal8Bit().data(), false) != OPEN_SDK_NOERROR)
     {
         return;
     }
@@ -246,8 +262,10 @@ void MainWindow::getDeviceList(const std::string& accessToken)
     //获取设备列表
     void* devList = NULL;
     int devListLen = 0;
-    std::string devSerial = "FU0782242";
-    if(OpenSDK_Data_GetDeviceInfo(accessToken.data(), devSerial.data(), &devList, &devListLen) != OPEN_SDK_NOERROR)
+    QString devSerial = settings.value("main/deviceSerial").toString();
+    if(OpenSDK_Data_GetDeviceInfo(accessToken.data(),
+                                  devSerial.toLocal8Bit().data(),
+                                  &devList, &devListLen) != OPEN_SDK_NOERROR)
     {
         OpenSDK_FiniLib();
         return;
