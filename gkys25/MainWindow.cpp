@@ -10,7 +10,6 @@
 #include <QTextCodec>
 #include <QFile>
 #include <QDir>
-#include <QSettings>
 #include <QTextStream>
 #include "CustomHeaderView.h"
 #include "TextItemDelegate.h"
@@ -177,7 +176,7 @@ void MainWindow::sendHttpRequest()
     QString appSecret = settings.value("main/appSecret").toString();
 
     curl_global_init(CURL_GLOBAL_ALL);
-    std::string accessToken  = "";
+    std::string respData  = "";
     std::string url = "https://open.ys7.com/api/lapp/token/get";
     std::string postData;
     postData.append("appKey=");
@@ -190,7 +189,7 @@ void MainWindow::sendHttpRequest()
     curl_easy_setopt(pCurl, CURLOPT_SSL_VERIFYHOST, 0L);
     curl_easy_setopt(pCurl, CURLOPT_TRANSFER_ENCODING, 1L);
     curl_easy_setopt(pCurl, CURLOPT_WRITEFUNCTION, writeDataCallback);
-    curl_easy_setopt(pCurl, CURLOPT_WRITEDATA, &accessToken);
+    curl_easy_setopt(pCurl, CURLOPT_WRITEDATA, &respData);
     curl_easy_setopt(pCurl, CURLOPT_CONNECTTIMEOUT, 20L);
     curl_easy_setopt(pCurl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(pCurl, CURLOPT_POST, 1L);
@@ -202,7 +201,7 @@ void MainWindow::sendHttpRequest()
     curl_global_cleanup();
 
     QJsonParseError jsonError;
-    QJsonDocument doucment = QJsonDocument::fromJson(QByteArray::fromStdString(accessToken), &jsonError);
+    QJsonDocument doucment = QJsonDocument::fromJson(QByteArray::fromStdString(respData), &jsonError);
     if (doucment.isNull() || (jsonError.error != QJsonParseError::NoError))
     {
         return;
@@ -210,9 +209,8 @@ void MainWindow::sendHttpRequest()
 
     QJsonObject object = doucment.object();
     QJsonObject objectData = object.value("data").toObject();
-    accessToken = objectData.value("accessToken").toString().toStdString();
-    qDebug() << accessToken.data();
-    getDeviceList(accessToken);
+    QString accToken = objectData.value("accessToken").toString();
+    getDeviceList(accToken, &settings);
 }
 
 
@@ -229,14 +227,12 @@ size_t MainWindow::writeDataCallback(char* buffer, size_t size,
 }
 
 
-void MainWindow::getDeviceList(const std::string& accessToken)
+void MainWindow::getDeviceList(const QString& accessToken, QSettings* settings)
 {
-    QString currPath = QDir::currentPath();
-    QSettings settings(currPath + "/Config.ini", QSettings::IniFormat);
     //获取设备列表
-    QString authAddr = settings.value("main/authAddr").toString();
-    QString platForm = settings.value("main/platForm").toString();
-    QString appKey = settings.value("main/appKey").toString();
+    QString authAddr = settings->value("main/authAddr").toString();
+    QString platForm = settings->value("main/platForm").toString();
+    QString appKey = settings->value("main/appKey").toString();
     //初始化SDK
     if ( OpenSDK_InitLib(authAddr.toLocal8Bit().data(),
                          platForm.toLocal8Bit().data(),
@@ -253,7 +249,7 @@ void MainWindow::getDeviceList(const std::string& accessToken)
     OpenSDK_SetConfigInfo(CONFIG_P2P_MAXNUM, 16);
 
     //设置token
-    if (OpenSDK_SetAccessToken(accessToken.data()) != OPEN_SDK_NOERROR)
+    if (OpenSDK_SetAccessToken(accessToken.toLocal8Bit().data()) != OPEN_SDK_NOERROR)
     {
         OpenSDK_FiniLib();
         return;
@@ -262,8 +258,8 @@ void MainWindow::getDeviceList(const std::string& accessToken)
     //获取设备列表
     void* devList = NULL;
     int devListLen = 0;
-    QString devSerial = settings.value("main/deviceSerial").toString();
-    if(OpenSDK_Data_GetDeviceInfo(accessToken.data(),
+    QString devSerial = settings->value("main/deviceSerial").toString();
+    if(OpenSDK_Data_GetDeviceInfo(accessToken.toLocal8Bit().data(),
                                   devSerial.toLocal8Bit().data(),
                                   &devList, &devListLen) != OPEN_SDK_NOERROR)
     {

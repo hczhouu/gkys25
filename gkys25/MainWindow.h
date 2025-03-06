@@ -6,6 +6,7 @@
 #include <QVBoxLayout>
 #include <QPushButton>
 #include <QTableView>
+#include <QSettings>
 #include "OpenNetStreamDefine.h"
 #include "OpenNetStreamError.h"
 #include "OpenNetStreamInterFace.h"
@@ -57,7 +58,7 @@ private:
     void initControls();
     void initTableView();
     void sendHttpRequest();
-    void getDeviceList(const std::string& accessToken);
+    void getDeviceList(const QString& accessToken, QSettings* settings);
     static size_t writeDataCallback(char* buffer, size_t size,
                              size_t nitems, void* outstream);
 
