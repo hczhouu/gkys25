@@ -1,4 +1,4 @@
-#ifndef DEVICETABLEMODEL_H
+﻿#ifndef DEVICETABLEMODEL_H
 #define DEVICETABLEMODEL_H
 
 #include <QAbstractTableModel>
@@ -33,7 +33,7 @@ public:
     void updateModelData(const QJsonArray& data);
 
 protected:
-    virtual QHash<int, QByteArray> roleNames() const;
+    virtual QHash<int, QByteArray> roleNames() const override;
 
 private:
     QJsonArray m_modelData;

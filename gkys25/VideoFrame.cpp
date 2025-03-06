@@ -48,7 +48,7 @@ void VideoFrame::setSize(int iWidth, int iHeight)
     font.setFamily(u8"微软雅黑");
     m_textTips.setFont(font);
     m_textTips.setAlignment(Qt::AlignCenter);
-    m_textTips.setStyleSheet("background:transparent;border:none;color:red;font:15px");
+    m_textTips.setStyleSheet("background:transparent;border:none;color:red;");
 
     m_vboxTips.addWidget(&m_textTips);
     m_videoFrame.setLayout(&m_vboxTips);
