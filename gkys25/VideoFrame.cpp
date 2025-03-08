@@ -19,6 +19,7 @@ VideoFrame::VideoFrame()
     connect(this, &VideoFrame::playAlarmSound, this, &VideoFrame::slotPlayAlarmSound, Qt::UniqueConnection);
 
     exitFlags.store(false);
+    m_enablePlaySound.store(true);
     alarmCount.store(0);
     m_player = std::make_shared<QMediaPlayer>();
     m_playerList = std::make_shared<QMediaPlaylist>();
@@ -72,12 +73,6 @@ bool VideoFrame::event(QEvent* event)
 }
 
 
-void VideoFrame::mouseDoubleClickEvent(QMouseEvent *event)
-{
-
-}
-
-
 void CALLBACK VideoFrame::messageHandler(const char* szSessionId, unsigned int iMsgType,
                                          unsigned int iErrorCode,const char *pMessageInfo, void *pUser)
 {
@@ -124,7 +119,6 @@ void VideoFrame::realPlayVideo(const QString& devSerialNum, int channelNo, WId h
     }
 
     *sessionId = static_cast<char*>(sessionBuf);
-    qDebug() << sessionId->data() << channelNo << devSerialNum;
     if(OpenSDK_StartPlayWithStreamType(sessionId->toStdString().data(), (HWND)hwnd,
        devSerialNum.toStdString().data(), channelNo, NULL, 1) != OPEN_SDK_NOERROR)
     {
@@ -221,8 +215,7 @@ void VideoFrame::getAlarmInfo(const std::string& devSerialNum, const int channel
         QString stopTime  = currDate.toString("yyyy-MM-dd 23:59:59");
         if (OpenSDK_Data_GetAlarmListEx(devSerialNum.data(), channelNo,
                                         startTime.toStdString().data(), stopTime.toStdString().data(),
-                                        ALARM_TYPE_ALL, 0,  0, 100, &pBuf, &length) != OPEN_SDK_NOERROR)
-        {
+                                        ALARM_TYPE_ALL, 2,  0, 100, &pBuf, &length) != OPEN_SDK_NOERROR) {
             continue;
         }
 
@@ -272,7 +265,8 @@ void VideoFrame::getAlarmInfo(const std::string& devSerialNum, const int channel
 
 void VideoFrame::slotPlayAlarmSound()
 {
-    if (m_player->state() != QMediaPlayer::PlayingState)
+    if (m_player->state() != QMediaPlayer::PlayingState
+            && m_enablePlaySound.load())
     {
         m_player->play();
     }
@@ -290,6 +284,19 @@ void VideoFrame::stateChanged(QMediaPlayer::State newState)
         }
 
         alarmCount.fetch_add(1);
-        m_player->play();
+        if (m_enablePlaySound)
+        {
+            m_player->play();
+        }
+    }
+}
+
+
+void VideoFrame::slotEnablePlaySound(bool enablePlay)
+{
+    m_enablePlaySound.store(enablePlay);
+    if (m_player->state() == QMediaPlayer::PlayingState && !enablePlay)
+    {
+        m_player->stop();
     }
 }

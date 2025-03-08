@@ -1,4 +1,4 @@
-#include "TextItemDelegate.h"
+﻿#include "TextItemDelegate.h"
 #include <QPainter>
 #include <QLineEdit>
 #include <QMouseEvent>
@@ -71,12 +71,10 @@ bool TextItemDelegate::editorEvent(QEvent *event, QAbstractItemModel *model,
 QWidget* TextItemDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
     QLineEdit* lineEdit = new QLineEdit(parent);
-    //lineEdit->setFixedSize(parent->width(),parent->height());
     lineEdit->setStyleSheet("background:gray;border:none;color:white");
     QFont font;
     font.setFamily(u8"微软雅黑");
     font.setPixelSize(16);
-    //font.setBold(true);
     lineEdit->setFont(font);
     lineEdit->setAlignment(Qt::AlignCenter);
     return lineEdit;

@@ -13,6 +13,7 @@ FullScreenDialog::FullScreenDialog(QWidget *parent) :
     ui->setupUi(this);
     resize(1920, 1080);
     setAttribute(Qt::WA_DeleteOnClose);
+    m_bEnablePlaySound = true;
     initControls();
 }
 
@@ -71,13 +72,22 @@ void FullScreenDialog::initControls()
     m_btnNext.setIconSize(QSize(20, 20));
     connect(&m_btnNext, &QPushButton::clicked, this, &FullScreenDialog::onNextClick);
 
-
     m_btnVideoCount.setMinimumSize(40, 40);
     m_btnVideoCount.setCursor(Qt::PointingHandCursor);
     m_btnVideoCount.setStyleSheet("background:transparent;border:none");
     m_btnVideoCount.setIcon(QIcon(":/res/videocount.png"));
     m_btnVideoCount.setIconSize(QSize(20, 20));
     connect(&m_btnVideoCount, &QPushButton::clicked, this, &FullScreenDialog::onVideoCountChange);
+
+
+    m_btnEnableSound.setMinimumSize(40, 40);
+    m_btnEnableSound.setCursor(Qt::PointingHandCursor);
+    m_btnEnableSound.setText(u8"开启语音播报");
+    m_btnEnableSound.setFont(font);
+    m_btnEnableSound.setStyleSheet("background:transparent;border:none;color:white;");
+    m_btnEnableSound.setIcon(QIcon(":/res/checked.png"));
+    m_btnEnableSound.setIconSize(QSize(20, 20));
+    connect(&m_btnEnableSound, &QPushButton::clicked, this, &FullScreenDialog::onEnablePlaySound);
 
     m_btnExitFull.setMinimumSize(40, 40);
     m_btnExitFull.setCursor(Qt::PointingHandCursor);
@@ -90,6 +100,7 @@ void FullScreenDialog::initControls()
     //m_hboxMenu.addWidget(&m_textPageNum);
     //m_hboxMenu.addWidget(&m_btnNext);
     //m_hboxMenu.addWidget(&m_btnVideoCount);
+    m_hboxMenu.addWidget(&m_btnEnableSound);
     m_hboxMenu.addWidget(&m_btnExitFull);
 
     m_frameVideos = new QFrame(this);
@@ -107,6 +118,19 @@ void FullScreenDialog::onExitFullScreen()
     done(1);
 }
 
+
+void FullScreenDialog::onEnablePlaySound()
+{
+    if (m_bEnablePlaySound)
+    {
+        m_btnEnableSound.setIcon(QIcon(":/res/uncheck.png"));
+    } else {
+        m_btnEnableSound.setIcon(QIcon(":/res/checked.png"));
+    }
+
+    m_bEnablePlaySound = !m_bEnablePlaySound;
+    emit enablePlaySound(m_bEnablePlaySound);
+}
 
 void FullScreenDialog::onVideoCountChange()
 {
@@ -344,10 +368,10 @@ void FullScreenDialog::createVideoByIndex(int index)
     clearGridLayout();
     //创建播放框架
     VideoFrame* playFrameWnd = new VideoFrame();
+    connect(this, &FullScreenDialog::enablePlaySound, playFrameWnd, &VideoFrame::slotEnablePlaySound);
     playFrameWnd->setSize(iPlayWndWidth, iPlayWndHeight);
     QJsonObject item = m_devArray->at(index).toObject();
     QString serialNum = item.value("deviceSerial").toString();
-    qDebug() << "serialNum>>>>>>>>>>>>>>>>>> : " << serialNum;
     int channelNo = item.value("cameraNo").toInt();
     playFrameWnd->startPlay(serialNum, channelNo);
     m_gridLayout.addWidget(playFrameWnd, iPlayWndHeight,

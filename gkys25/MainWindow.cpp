@@ -14,7 +14,6 @@
 #include "CustomHeaderView.h"
 #include "TextItemDelegate.h"
 #include "FullScreenDialog.h"
-#include "json/json.h"
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -210,6 +209,7 @@ void MainWindow::sendHttpRequest()
     QJsonObject object = doucment.object();
     QJsonObject objectData = object.value("data").toObject();
     QString accToken = objectData.value("accessToken").toString();
+    qDebug() << accToken.toLocal8Bit().data();
     getDeviceList(accToken, &settings);
 }
 

@@ -34,10 +34,10 @@ public slots:
     void slotPlayException(VideoFrame* pFrame, int msgType);
     void slotPlayAlarmSound();
     void stateChanged(QMediaPlayer::State newState);
+    void slotEnablePlaySound(bool enablePlay);
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
-    void mouseDoubleClickEvent(QMouseEvent *event) override;
     bool event(QEvent* event) override;
 
 private:
@@ -50,6 +50,7 @@ private:
     QLabel m_textTips;
     std::shared_ptr<QMediaPlayer> m_player;
     std::shared_ptr<QMediaPlaylist> m_playerList;
+    std::atomic<bool> m_enablePlaySound;
 
     void getAlarmList();
     void getAlarmInfo(const std::string& devSerialNum, const int channelNo);

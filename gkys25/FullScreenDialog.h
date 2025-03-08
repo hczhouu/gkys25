@@ -29,6 +29,9 @@ public:
     void createVideos(int videoCount);
     void createVideoByIndex(int index);
 
+signals:
+    void enablePlaySound(bool enable);
+
 public slots:
     void onExitFullScreen();
     void onVideoCountChange();
@@ -40,6 +43,7 @@ public slots:
 
     void onPreviousClick();
     void onNextClick();
+    void onEnablePlaySound();
 
 private:
     Ui::FullScreenDialog *ui;
@@ -55,10 +59,12 @@ private:
     QLabel m_textPageNum;
     QPushButton m_btnExitFull;
     QPushButton m_btnVideoCount;
+    QPushButton m_btnEnableSound;
     QFrame* m_frameVideos;
     QVector<VideoFrame*> m_vecFrames;
     int m_currVideoCount;
     int m_currVideoIndex;
+    bool m_bEnablePlaySound;
 
     void initControls();
     void clearGridLayout();
