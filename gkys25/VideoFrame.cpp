@@ -4,6 +4,7 @@
 #include <QDebug>
 #include <thread>
 #include <mutex>
+#include <QDebug>
 #include <QDate>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -11,6 +12,8 @@
 
 std::atomic<bool> exitFlags;
 std::atomic<int>  alarmCount;
+std::mutex oMutexPlay;
+std::mutex oMutexStop;
 
 VideoFrame::VideoFrame()
 {
@@ -82,6 +85,7 @@ void CALLBACK VideoFrame::messageHandler(const char* szSessionId, unsigned int i
         return;
     }
 
+    pframe->m_sessionId = const_cast<char*>(szSessionId);
     emit pframe->playException(pframe, iMsgType);
 }
 
@@ -90,8 +94,9 @@ void VideoFrame::startPlay(const QString& devSerialNum, int channelNo)
 {
     m_devSerialNum = devSerialNum;
     m_channelNo = channelNo;
+
     std::thread(&VideoFrame::realPlayVideo,
-                this, devSerialNum, channelNo, m_videoFrame.winId(), &m_sessionId).detach();
+                this, devSerialNum, channelNo, m_videoFrame.winId()).detach();
 }
 
 
@@ -108,8 +113,10 @@ void VideoFrame::updateBackground()
 }
 
 
-void VideoFrame::realPlayVideo(const QString& devSerialNum, int channelNo, WId hwnd, QString* sessionId)
+void VideoFrame::realPlayVideo(const QString& devSerialNum, int channelNo, WId hwnd)
 {
+    std::lock_guard<std::mutex> lock(oMutexPlay);
+
     char* sessionBuf  =  nullptr;
     int sessionLen = 0;
     if(OpenSDK_AllocSessionEx(messageHandler, this, &sessionBuf, &sessionLen) != OPEN_SDK_NOERROR)
@@ -118,15 +125,14 @@ void VideoFrame::realPlayVideo(const QString& devSerialNum, int channelNo, WId h
         return;
     }
 
-    *sessionId = static_cast<char*>(sessionBuf);
-    if(OpenSDK_StartPlayWithStreamType(sessionId->toStdString().data(), (HWND)hwnd,
+    if(OpenSDK_StartPlayWithStreamType(sessionBuf, (HWND)hwnd,
        devSerialNum.toStdString().data(), channelNo, NULL, 1) != OPEN_SDK_NOERROR)
     {
         qDebug() << "OpenSDK_StartPlayWithStreamType failed";
         return;
     }
 
-    getAlarmList();
+    //getAlarmList();
 
     if (OpenSDK_OpenSound(sessionBuf) != OPEN_SDK_NOERROR)
     {
@@ -138,6 +144,7 @@ void VideoFrame::realPlayVideo(const QString& devSerialNum, int channelNo, WId h
 
 void VideoFrame::stopRealPlay(const QString& sessionId)
 {
+    std::lock_guard<std::mutex> lock(oMutexStop);
     if (OpenSDK_CloseSound(sessionId.toStdString().data()) != OPEN_SDK_NOERROR)
     {
         qDebug() << "OpenSDK_CloseSound failed";
@@ -167,7 +174,7 @@ void VideoFrame::setPlayStatus(int type)
     switch (type) {
     case INS_PLAY_EXCEPTION:
     {
-        m_textTips.setText(u8"播放异常,正在重试...");
+        m_textTips.setText(u8"播放异常...");
         qDebug() << "OpenSDK_GetLastErrorCode() : " << OpenSDK_GetLastErrorCode() << OpenSDK_GetLastErrorDesc();
     }
 
@@ -181,6 +188,7 @@ void VideoFrame::setPlayStatus(int type)
     case INS_PLAY_STOP:
     {
         m_textTips.setText(u8"停止播放...");
+        qDebug() << "play stoped............................";
     }
 
         break;

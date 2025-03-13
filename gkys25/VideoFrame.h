@@ -7,6 +7,7 @@
 #include <QLabel>
 #include <QString>
 #include <atomic>
+#include <QString>
 #include <QMediaPlayer>
 #include <QMediaPlaylist>
 #include "OpenNetStreamDefine.h"
@@ -24,6 +25,7 @@ public:
     void stopPlay();
     void updateBackground();
     void setPlayStatus(int type);
+    QString m_sessionId;
 
 signals:
     void frameDbClick(int itemIndex, int channelIndex);
@@ -42,7 +44,6 @@ protected:
 
 private:
     QFrame m_videoFrame;
-    QString m_sessionId;
     QString m_devSerialNum;
     int m_channelNo;
 
@@ -54,7 +55,7 @@ private:
 
     void getAlarmList();
     void getAlarmInfo(const std::string& devSerialNum, const int channelNo);
-    void realPlayVideo(const QString& devSerialNum, int channelNo, WId hwnd, QString* sessionId);
+    void realPlayVideo(const QString& devSerialNum, int channelNo, WId hwnd);
     void stopRealPlay(const QString& sessionId);
     static void CALLBACK messageHandler(const char* szSessionId, unsigned int iMsgType,
                                              unsigned int iErrorCode,const char *pMessageInfo, void *pUser);
